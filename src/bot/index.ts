@@ -1,4 +1,4 @@
-import { Bot, Context, InlineKeyboard, Keyboard } from 'grammy';
+import { Bot, Context, InlineKeyboard } from 'grammy';
 import { hydrateReply, parseMode } from '@grammyjs/parse-mode';
 import type { ParseModeFlavor } from '@grammyjs/parse-mode';
 import { autoQuote } from '@roziscoding/grammy-autoquote';
@@ -310,19 +310,34 @@ export const bootstrap = () => {
 
     const configs = await Config.find();
 
-    let res = '';
+    let responses: string[] = [];
     for (const { id, isp, countryEmoji, url } of configs) {
-      res += `🚩 Country: ${countryEmoji}\n📶 ISP: ${escapeMarkdown(
-        isp,
-      )}\n⚙️ Config: \`${escapeMarkdown(
-        url,
-      )}\`\n✏️ Edit: \`/edit ${id}\`\n🗑️ Delete: \`/delete ${id}\`\n\n`;
+      responses.push(
+        `🚩 Country: ${countryEmoji}\n📶 ISP: ${escapeMarkdown(
+          isp,
+        )}\n⚙️ Config: \`${escapeMarkdown(
+          url,
+        )}\`\n✏️ Edit: \`/edit ${id}\`\n🗑️ Delete: \`/delete ${id}\`\n\n`,
+      );
     }
-    if (res === '') res = 'کانفیگی موجود نیست';
+    if (responses.length <= 0) responses.push('کانفیگی موجود نیست');
 
     await ctx.answerCallbackQuery();
 
-    ctx.reply(res, { reply_markup: adminBackToMainMenu });
+    let res = '';
+    for (let i = 0; i < responses.length; i++) {
+      if ((i + 1) % 5 !== 0) res += responses[i];
+      else if (res !== '') {
+        res += responses[i];
+        await ctx.reply(res, {
+          reply_markup:
+            i === responses.length - 1 ? adminBackToMainMenu : undefined,
+        });
+        res = '';
+      }
+    }
+
+    if (res !== '') ctx.reply(res, { reply_markup: adminBackToMainMenu });
   });
 
   bot.callbackQuery('add_list', async (ctx) => {
